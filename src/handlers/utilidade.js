@@ -919,13 +919,31 @@ async function handleTiktok(sock, msg, jid, caption, getPrefix) {
   const tiktokCookiesEnv = process.env.TIKTOK_COOKIES?.trim();
   let cookieFilePath = null;
   let cookieTempFile = null;
+  
+  // Debug: Verificar se cookies estão disponíveis
   if (tiktokCookiesEnv) {
+    console.log(`✅ TIKTOK_COOKIES encontrado em process.env (${tiktokCookiesEnv.length} bytes)`);
     cookieTempFile = path.join(tmpdir(), `tiktok_cookies_${require('crypto').randomUUID()}.txt`);
-    try { fs.writeFileSync(cookieTempFile, tiktokCookiesEnv, 'utf8'); } catch (e) { console.log('Erro ao gravar cookie TikTok em temp:', e.message); }
+    try { 
+      fs.writeFileSync(cookieTempFile, tiktokCookiesEnv, 'utf8'); 
+      console.log(`✅ Arquivo de cookies criado: ${cookieTempFile}`);
+    } catch (e) { 
+      console.log('❌ Erro ao gravar cookie TikTok em temp:', e.message); 
+    }
     cookieFilePath = cookieTempFile;
   } else {
+    console.log('⚠️ TIKTOK_COOKIES não encontrado em process.env');
     const localCookies = path.join(__dirname, '../../tiktok_cookies.txt');
-    if (fs.existsSync(localCookies)) cookieFilePath = localCookies;
+    if (fs.existsSync(localCookies)) {
+      console.log(`✅ Usando arquivo local de cookies: ${localCookies}`);
+      cookieFilePath = localCookies;
+    } else {
+      console.log(`⚠️ Nenhum arquivo de cookies encontrado em: ${localCookies}`);
+    }
+  }
+  
+  if (!cookieFilePath) {
+    console.log('⚠️ AVISO: Bot vai tentar download SEM cookies (pode falhar)');
   }
 
   const cleanupCookieFile = () => {
@@ -960,10 +978,16 @@ async function handleTiktok(sock, msg, jid, caption, getPrefix) {
   let dlStderr = '';
   const dlOk = await new Promise((resolve) => {
     const args = [...getYtDlpArgs(), '--no-playlist', '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', '--merge-output-format', 'mp4'];
-    if (cookieFilePath) args.push('--cookies', cookieFilePath);
+    if (cookieFilePath) {
+      args.push('--cookies', cookieFilePath);
+      console.log(`🍪 Usando cookies no download TikTok: ${cookieFilePath}`);
+    } else {
+      console.log(`⚠️ Download TikTok SEM cookies - pode dar erro 403`);
+    }
     args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36');
     args.push('--referer', 'https://www.tiktok.com/');
     args.push('-o', rawPath, link);
+    console.log(`🎬 Iniciando download: ${link}`);
     execFile(ytdlp, args, { timeout: 60000 }, (err, _stdout, stderr) => {
       dlStderr = stderr || '';
       if (err) { console.log('yt-dlp tiktok err:', stderr?.slice(-400)); resolve(false); } else resolve(true);
