@@ -1,7 +1,7 @@
 /**
  * Handler de Utilidade — Piroquinhas Bot
  * Comandos: !qrcode, !encurtar, !cep, !tiktok, !audio, !som, !perfil, !menu,
- *           !save, !saverec, !clima, !moeda, !calcular, !dado, !piada, !fato,
+ *           !save, !saverec, !clima, !moeda, !calcular, !dado, !piada, !fato
  *           !traduzir, !morse, !codigomorse, !demorse, !decodificarmorse
  */
 
