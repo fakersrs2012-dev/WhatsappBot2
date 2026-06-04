@@ -85,11 +85,17 @@ console.log(`📂 Dados carregados: ${msgCount.size} usuários no histórico`);
 
 function saveData() {
   try {
+    const existingData = fs.existsSync(DATA_FILE)
+      ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) || {}
+      : {};
+
     const warningsObj = {};
     for (const [gJid, usersMap] of warnings.entries()) {
       warningsObj[gJid] = Object.fromEntries([...usersMap.entries()]);
     }
+
     const data = {
+      ...existingData,
       msgCount:       Object.fromEntries([...msgCount.entries()]),
       stickerCount:   Object.fromEntries([...stickerCount.entries()]),
       cmdCount:       Object.fromEntries([...cmdCount.entries()]),
@@ -101,6 +107,7 @@ function saveData() {
         prefixos:    Object.fromEntries([...prefixMap.entries()]),
       },
     };
+
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) { console.log('⚠️ Erro ao salvar data.json:', e.message); }
 }
@@ -430,7 +437,7 @@ async function handleMessage(sock, msg) {
     { await utilidadeHandler.handleMenuJogos(sock, msg, jid, getPrefix); return; }
   if (matchCmd(cmdWord, 'menubaixar'))
     { await utilidadeHandler.handleMenuBaixar(sock, msg, jid, getPrefix); return; }
-  if (matchCmd(cmdWord, 'menurelacionamento') || matchCmd(cmdWord, 'menurelacionamentos'))
+  if (matchCmd(cmdWord, 'menucasal') || matchCmd(cmdWord, 'menurelacionamento') || matchCmd(cmdWord, 'menurelacionamentos'))
     { await utilidadeHandler.handleMenuRelacionamento(sock, msg, jid, getPrefix); return; }
   if (matchCmd(cmdWord, 'menuadm'))
     { await grupoHandler.handleMenuAdm(sock, msg, jid, getPrefix); return; }
@@ -442,6 +449,34 @@ async function handleMessage(sock, msg) {
     { await aniversarioHandler.handleMenuAniversario(sock, msg, jid, getPrefix); return; }
   if (matchCmd(cmdWord, 'brincadeiras'))
     { await diversaoHandler.handleBrincadeiras(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'sistemgold'))
+    { await diversaoHandler.handleSistemaGold(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'sistempet'))
+    { await diversaoHandler.handleSistemaPet(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'menugold'))
+    { await diversaoHandler.handleMenuGold(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'menupet'))
+    { await diversaoHandler.handleMenuPet(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'gold'))
+    { await diversaoHandler.handleGold(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'loja'))
+    { await diversaoHandler.handleLoja(sock, msg, jid, getPrefix); return; }
+  if (matchCmd(cmdWord, 'comprar'))
+    { await diversaoHandler.handleComprar(sock, msg, jid, caption); return; }
+  if (matchCmd(cmdWord, 'vender'))
+    { await diversaoHandler.handleVender(sock, msg, jid, caption); return; }
+  if (matchCmd(cmdWord, 'extrato'))
+    { await diversaoHandler.handleExtrato(sock, msg, jid); return; }
+  if (matchCmd(cmdWord, 'adotar'))
+    { await diversaoHandler.handleAdotarPet(sock, msg, jid, caption); return; }
+  if (matchCmd(cmdWord, 'alimentar'))
+    { await diversaoHandler.handleAlimentarPet(sock, msg, jid); return; }
+  if (matchCmd(cmdWord, 'brincar'))
+    { await diversaoHandler.handleBrincarPet(sock, msg, jid); return; }
+  if (matchCmd(cmdWord, 'statuspet'))
+    { await diversaoHandler.handleStatusPet(sock, msg, jid); return; }
+  if (matchCmd(cmdWord, 'petrank'))
+    { await diversaoHandler.handlePetRank(sock, msg, jid, contactNames); return; }
   if (matchCmd(cmdWord, 'alteradores'))
     { await utilidadeHandler.handleAlteradores(sock, msg, jid); return; }
 
@@ -629,6 +664,9 @@ async function handleMessage(sock, msg) {
     { await diversaoHandler.handleQuiz(sock, msg, jid, author, senderJid); return; }
   if (matchCmd(cmdWord, 'pontos'))         { await diversaoHandler.handlePontos(sock, msg, jid, author, senderJid); return; }
   if (matchCmd(cmdWord, 'rankjogos'))      { await diversaoHandler.handleRankJogos(sock, msg, jid, contactNames); return; }
+  if (matchCmd(cmdWord, 'levelon'))        { await utilidadeHandler.handleLevelOn(sock, msg, jid, author); return; }
+  if (matchCmd(cmdWord, 'level'))          { await utilidadeHandler.handleLevel(sock, msg, jid, author, msgCount); return; }
+  if (matchCmd(cmdWord, 'ranklevel'))      { await utilidadeHandler.handleRankLevel(sock, msg, jid, contactNames, msgCount); return; }
   if (matchCmd(cmdWord, 'anagrama') || matchCmdStart(cmd, 'anagrama '))
     { await diversaoHandler.handleAnagrama(sock, msg, jid, author, senderJid); return; }
   if (matchCmdStart(cmd, 'ppt'))           { await diversaoHandler.handlePpt(sock, msg, jid, caption, author, senderJid); return; }
