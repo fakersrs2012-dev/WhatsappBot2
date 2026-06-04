@@ -1,7 +1,7 @@
 /**
  * Handler de Utilidade — Piroquinhas Bot
  * Comandos: !qrcode, !encurtar, !cep, !tiktok, !audio, !som, !perfil, !menu,
- *           !save, !saverec, !clima, !moeda, !calcular, !dado, !piada, !fato
+ *           !save, !saverec, !clima, !moeda, !calcular, !dado, !piada, !fato,
  *           !traduzir, !morse, !codigomorse, !demorse, !decodificarmorse
  */
 
@@ -18,6 +18,7 @@ let logger = { level: 'silent' };
 let REMOVEBG_KEY = process.env.REMOVEBG_KEY || '';
 let _cachedYtDlpPath = null;
 let _cachedFfmpegPath = null;
+const levelEnabledChats = new Set();
 
 const MORSE_TABLE = {
   A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
@@ -271,9 +272,11 @@ async function handleMenu(sock, msg, jid, caption, getPrefix, author) {
 🎮 DIVERSÃO & ENTRETENIMENTO
 ▸ ${P}menujogos
 ▸ ${P}menuperfil
+▸ ${P}menucasal
 ▸ ${P}menurelacionamento
 ▸ ${P}menuaniversario
-▸ ${P}menubrincadeiras
+
+
 ▸ ${P}alteradores
 
 🔧 UTILIDADES
@@ -343,6 +346,43 @@ async function handleMenuJogos(sock, msg, jid, getPrefix) {
   console.log('🎮 Menu jogos enviado');
 }
 
+async function handleLevelOn(sock, msg, jid, author) {
+  const enabled = levelEnabledChats.has(jid);
+  const text = enabled
+    ? '✅ O sistema de level já está ativado neste chat. Use *!level* para ver seu nível e *!ranklevel* para acompanhar a galera.'
+    : '✅ Sistema de level ativado para este chat! Use *!level* para ver seu nível e *!ranklevel* para acompanhar a galera.';
+  if (!enabled) levelEnabledChats.add(jid);
+  await sock.sendMessage(jid, { text }, { quoted: msg });
+}
+
+async function handleLevel(sock, msg, jid, author, msgCount) {
+  const senderJid = msg.key.participant || msg.key.remoteJid;
+  const count = msgCount.get(senderJid)?.count || 0;
+  const xp = count;
+  const level = Math.floor(xp / 50) + 1;
+  const next = level * 50;
+  const progressPercent = next === 0 ? 100 : Math.min(100, Math.floor((xp / next) * 100));
+  const bar = '█'.repeat(Math.floor(progressPercent / 10)) + '░'.repeat(10 - Math.floor(progressPercent / 10));
+  await sock.sendMessage(jid, {
+    text: `🏅 *LEVEL DE ${author}*\n\n*Level:* ${level}\n*XP:* ${xp}/${next}\n*Progresso:* [${bar}] ${progressPercent}%\n\n_Envie mais mensagens para subir mais rápido!_`,
+  }, { quoted: msg });
+}
+
+async function handleRankLevel(sock, msg, jid, contactNames, msgCount) {
+  const ranking = [...msgCount.entries()].sort((a, b) => (b[1]?.count || 0) - (a[1]?.count || 0)).slice(0, 10);
+  if (!ranking.length) {
+    await sock.sendMessage(jid, { text: '📊 Ainda não há dados de level. Use o chat e tente novamente mais tarde.' }, { quoted: msg });
+    return;
+  }
+  const lines = ranking.map(([jidKey, data], idx) => {
+    const lvl = Math.floor((data.count || 0) / 50) + 1;
+    const name = contactNames[jidKey] || jidKey.split('@')[0];
+    return `${idx + 1}. ${name} — Level ${lvl} (${data.count || 0} msgs)`;
+  });
+  const texto = `🏆 *RANKING DE LEVEL*\n\n${lines.join('\n')}\n\n_Use *!level* para ver seu level pessoal._`;
+  await sock.sendMessage(jid, { text: texto }, { quoted: msg });
+}
+
 // ─── !alteradores ────────────────────────────────────────────
 async function handleAlteradores(sock, msg, jid) {
   const menu = `🎛️ ALTERADORES 🎛️
@@ -385,7 +425,9 @@ async function handleAlteradores(sock, msg, jid) {
 // ─── !menurelacionamento ─────────────────────────────────────
 async function handleMenuRelacionamento(sock, msg, jid, getPrefix) {
   const P = getPrefix(jid);
-  const menu = `❤️ *MENU DE RELACIONAMENTO* ❤️
+  const menu = `❤️ *MENU DO CASAL* ❤️
+
+_Use ${P}menucasal ou ${P}menurelacionamento para abrir este menu._
 
 💑 *COMANDOS DE CASAMENTO:*
 💍 ${P}casar @pessoa — Pedir em casamento
@@ -401,10 +443,19 @@ async function handleMenuRelacionamento(sock, msg, jid, getPrefix) {
 🎁 ${P}mimo — Fazer mimo _(+5 XP)_
 💋 ${P}beijo — Dar beijo _(+5 XP)_
 
-📊 *INFORMAÇÕES:*
+💝 *OUTROS COMANDOS ROMÂNTICOS:*
+🤗 ${P}abraco — Enviar abraço gostoso
+🎀 ${P}presente — Dar presente especial
+🍽️ ${P}jantar — Levar para jantar
+🎬 ${P}cinematel — Assistir filme juntos
+✈️ ${P}viajar — Planejar viagem romântica
+🎤 ${P}serenata — Cantar serenata pro par
+
+🎯 *COMANDOS ESPECIAIS:*
+🔥 ${P}xpdobro — Ativar XP duplo pro casal
 🏆 ${P}rankcasais — Ver ranking dos casais
 
-_"O amor cresce com dedicação diária"_ 💕`;
+_Amor é ação diária. Use os comandos para fortalecer seu casal!_ 💕`;
   await sock.sendMessage(jid, { text: menu }, { quoted: msg });
   console.log('❤️ Menu relacionamento enviado');
 }
@@ -1431,6 +1482,10 @@ module.exports = {
   handleMenuBaixar,
   handleMenuRelacionamento,
   handleAlteradores,
+  // Sistema de level
+  handleLevelOn,
+  handleLevel,
+  handleRankLevel,
   // Utilidades básicas
   handleQrcode,
   handleEncurtar,
